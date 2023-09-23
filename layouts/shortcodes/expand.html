@@ -1,11 +1,29 @@
-{{ $id := substr (sha1 .Inner) 0 8 }}
-<div class="gdoc-expand">
-  <label class="gdoc-expand__head flex justify-between" for="{{ $id }}-{{ .Ordinal }}">
-    <span>{{ default "Expand" (.Get 0) }}</span>
-    <span>{{ default "↕" (.Get 1) }}</span>
-  </label>
-  <input id="{{ $id }}-{{ .Ordinal }}" type="checkbox" class="gdoc-expand__control hidden" />
-  <div class="gdoc-markdown--nested gdoc-expand__content">
-    {{ .Inner | $.Page.RenderString }}
-  </div>
-</div>
+{{/*  Thanks to Nelis Oostens for the logic to fix inner html https://oostens.me/posts/hugo-shortcodes-with-markdown-gotchas/ */}}
+{{- $.Scratch.Set "title"    "Expand"                   -}}
+{{- $.Scratch.Set "symbol"   "↕"                        -}}
+{{- $.Scratch.Set "expanded" "false"                    -}}
+{{- $.Scratch.Set "id"       (substr (sha1 .Inner) 0 8) -}}
+{{- if .IsNamedParams -}}
+{{-   with .Params.title    -}}{{- $.Scratch.Set "title"    . -}}{{- end -}}
+{{-   with .Params.symbol   -}}{{- $.Scratch.Set "symbol"   . -}}{{- end -}}
+{{-   with .Params.expanded -}}{{- $.Scratch.Set "expanded" . -}}{{- end -}}
+{{-   with .Params.id       -}}{{- $.Scratch.Set "id"       . -}}{{- end -}}
+{{- else -}}
+{{-   $.Scratch.Set "title"    (.Get 0 | default ($.Scratch.Get "title"))    -}}
+{{-   $.Scratch.Set "symbol"   (.Get 1 | default ($.Scratch.Get "symbol"))   -}}
+{{-   $.Scratch.Set "expanded" (.Get 2 | default ($.Scratch.Get "expanded")) -}}
+{{-   $.Scratch.Set "id"       (.Get 3 | default ($.Scratch.Get "id"))       -}}
+{{- end -}}
+{{- if eq ($.Scratch.Get "expanded") true -}}
+{{/* populate a var with the needful so we don't need logic */}}
+{{-  $.Scratch.Set   "inputEnd" " checked />" -}}
+{{- else -}}
+{{-  $.Scratch.Set   "inputEnd" " />" -}}
+{{- end -}}
+{{ printf "<div class=\"gdoc-expand\">  <label class=\"gdoc-expand__head flex justify-between\" for=\"%v-%v\">" ($.Scratch.Get "id") $.Ordinal |htmlUnescape | safeHTML }}
+{{ printf "<span class=\"gdoc-expand__title\">%v</span>" ($.Scratch.Get "title")  |htmlUnescape | safeHTML }}
+{{ printf "<span class=\"gdoc-expand__symbol\">%v</span></label>"  ($.Scratch.Get "symbol") |htmlUnescape | safeHTML }}
+{{ printf "<input id=\"%v-%v\" type=\"checkbox\" class=\"gdoc-expand__control hidden\" %v" ($.Scratch.Get "id") .Ordinal ($.Scratch.Get "inputEnd")   |htmlUnescape | safeHTML }}
+{{ printf "<div class=\"gdoc-markdown--nested gdoc-expand__content\">" |htmlUnescape | safeHTML }}
+  {{ .Inner }}
+{{ printf "</div></div>"|htmlUnescape | safeHTML }}
